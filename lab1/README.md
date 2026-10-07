@@ -15,7 +15,7 @@
    **Не заменять драйвер Interface 1:** это отдельный канал UART.
    Для этой работы он не нужен. Не выбирать родительское составное USB-устройство.
 3. В CubeIDE: `File → Import → General → Existing Projects into Workspace`.
-   Root directory: `C:\Users\admin\Design-of-computing-systems\lab1`.
+   Root directory: `C:\Users\admin\Computing-systems-labs\lab1`.
    Выбрать `lab1`, снять `Copy projects into workspace`, нажать Finish.
 4. `Project → Build Project` (Ctrl+B). Получится `Debug/lab1.elf`.
    Это готовый проект с ручной настройкой GPIO и тактирования; генерация CubeMX
