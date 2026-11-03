@@ -1,0 +1,23 @@
+#ifndef BOARD_H
+#define BOARD_H
+#include "stm32f4xx.h"
+/* SDK1.1M.pdf: PA5 -> ADC/TIM.CH1 -> SA2.7 -> amplifier -> BA1. */
+#define BOARD_SOUND_PORT GPIOA
+#define BOARD_SOUND_PIN 5U
+#define BOARD_SOUND_AF 1U
+#define BOARD_SYSCLK_HZ 120000000U
+#define BOARD_TIMER_HZ 60000000U
+#define BOARD_UART_BAUD 57600U
+#define BOARD_I2C_PORT GPIOB
+#define BOARD_I2C_SCL_PIN 8U
+#define BOARD_I2C_SDA_PIN 9U
+#define BOARD_I2C_AF 4U
+#define BOARD_I2C_PCLK_HZ 30000000U
+/* ES0206: Standard-mode repeated START must stay <= 88 kHz. */
+#define BOARD_I2C_BAUD 80000U
+#define BOARD_I2C_ENABLE_PORT GPIOD
+#define BOARD_I2C_ENABLE_PIN 7U
+#define BOARD_BUTTON_PORT GPIOC
+#define BOARD_BUTTON_PIN 15U
+#define BOARD_DEBOUNCE_MS 30U
+#endif
