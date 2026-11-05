@@ -1,0 +1,1 @@
+PASS: 182 Cortex-M4 C assertions; 193 I2C/keypad/application/boot checks
