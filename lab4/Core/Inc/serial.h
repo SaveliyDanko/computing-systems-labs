@@ -11,7 +11,7 @@
 #endif
 typedef struct { uint32_t rx_overflows, rx_errors, tx_errors; } SerialStats;
 bool serial_init(bool interrupts);
-/* Main only. Enqueue all bytes or none; never wait for the wire. */
+
 bool serial_write(const void *data, size_t size);
 bool serial_read(uint8_t *byte);
 size_t serial_tx_free(void);

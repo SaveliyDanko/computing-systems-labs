@@ -64,7 +64,7 @@ void test_entry(void)
         CHECK(!keypad_filter_update(&filter, 0, true, start + 531U));
         CHECK(!keypad_filter_is_blocked(&filter));
     }
-    /* Chords cannot turn into a press by releasing only one of their keys. */
+
     keypad_filter_rearm(&filter, 0);
     CHECK(!keypad_filter_update(&filter, 0, true, 0));
     CHECK(!keypad_filter_update(&filter, 0, true, 30));
@@ -83,7 +83,6 @@ void test_entry(void)
     CHECK(!keypad_filter_update(&filter, 3, true, 1231));
     CHECK(!keypad_filter_update(&filter, 2, true, 1500));
 
-    /* Stable release is required after bounce, key changes and invalid scans. */
     keypad_filter_rearm(&filter, 0);
     CHECK(!keypad_filter_update(&filter, 0, true, 0));
     CHECK(!keypad_filter_update(&filter, 0, true, 30));

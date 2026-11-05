@@ -11,7 +11,7 @@ volatile uint32_t lab3_fault;
 static void fatal(uint32_t code)
 {
     lab3_fault = code;
-    for (;;) { /* Configuration/processor failure; normal playback never waits. */ }
+    for (;;) {                                                                     }
 }
 
 int main(void)

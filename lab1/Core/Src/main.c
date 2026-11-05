@@ -4,7 +4,6 @@
 #include "button.h"
 #include "traffic.h"
 
-/* These symbols can be inspected in CubeIDE's Expressions view. */
 Traffic traffic;
 Button button;
 volatile uint32_t lab1_fault;
@@ -13,19 +12,16 @@ static LedBank leds;
 static void fatal(uint32_t code)
 {
     lab1_fault = code;
-    for (;;) { /* Configuration failure only; normal processes never wait. */ }
+    for (;;) {}
 }
 
 static void SystemClock_Config(void)
 {
-    /* HSI 16 MHz is sufficient for GPIO; does not depend on board crystal.
-     * HAL_RCC_ClockConfig recalibrates the 1 ms SysTick time base. */
     RCC_OscInitTypeDef osc = {0};
     RCC_ClkInitTypeDef clk = {0};
     osc.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     osc.HSIState = RCC_HSI_ON;
     osc.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-    /* OpenOCD may temporarily use PLL during reset-init/Flash programming. */
     osc.PLL.PLLState = RCC_PLL_NONE;
     if (HAL_RCC_OscConfig(&osc) != HAL_OK) fatal(1);
     clk.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
@@ -50,7 +46,6 @@ int main(void)
         io_configure(BOARD_BUTTON_PORT, (uint16_t)(1U << BOARD_BUTTON_PIN), &input, 0) != IO_OK)
         fatal(5);
     uint32_t now = HAL_GetTick();
-    /* External pull-up R11: a closed button reads zero. */
     button_init(&button, !io_read_pin(BOARD_BUTTON_PORT, BOARD_BUTTON_PIN), now, BOARD_DEBOUNCE_MS);
     traffic_init(&traffic, now);
     for (;;) {

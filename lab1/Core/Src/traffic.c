@@ -5,7 +5,6 @@ void traffic_init(Traffic *t, uint32_t now)
 }
 void traffic_update(Traffic *t, bool press, uint32_t now)
 {
-    /* Event belongs to the state visible when sampled, before transition. */
     if (press && t->state != TRAFFIC_GREEN) t->request = true;
     uint32_t duration;
     switch (t->state) {
@@ -15,9 +14,9 @@ void traffic_update(Traffic *t, bool press, uint32_t now)
     default: duration = YELLOW_MS; break;
     }
     if ((uint32_t)(now - t->since) < duration) return;
-    if (t->state == TRAFFIC_RED) t->request = false; /* consumed by this red */
+    if (t->state == TRAFFIC_RED) t->request = false;
     t->state = (TrafficState)(((unsigned)t->state + 1U) % 4U);
-    t->since = now; /* no shortened visible phases after a debugger pause */
+    t->since = now;
 }
 Light traffic_light(const Traffic *t, uint32_t now)
 {

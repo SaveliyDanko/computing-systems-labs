@@ -1,4 +1,3 @@
-"""Probe, program or serve GDB for the SDK FT2232/JTAG adapter."""
 import argparse
 import os
 from pathlib import Path
@@ -18,7 +17,7 @@ if not exe or not search:
     raise SystemExit('Set OPENOCD_EXE and OPENOCD_SCRIPTS (folder containing target/stm32f4x.cfg).')
 if args.action == 'flash' and not args.elf.is_file():
     raise SystemExit(f'Build first: missing {args.elf}')
-# Tcl braces safely quote a Windows path; reject Tcl delimiters in user input.
+
 elf = args.elf.resolve().as_posix()
 if any(c in elf for c in '{}\n\r'):
     raise SystemExit('ELF path must not contain braces or newlines.')

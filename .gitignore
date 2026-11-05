@@ -1,7 +1,7 @@
 **/Debug/
 **/Release/
-**/build/*.o
-**/build/*.map
-**/.settings/
+# **/build/*.o
+# **/build/*.map
+# **/.settings/
 **/__pycache__/
 .venv/

@@ -98,8 +98,7 @@ bool app_init(App *app, uint32_t now_ms)
 bool app_update(App *app, uint32_t now_ms)
 {
     serial_service();
-    /* UART is output-only for the application. Drain unsolicited input in a
-     * bounded batch so typing in a terminal cannot replace physical keys. */
+
     for (unsigned i = 0; i < 16U; ++i) {
         uint8_t byte;
         if (!serial_read(&byte)) break;

@@ -14,7 +14,7 @@ bool io_clock_enable(GPIO_TypeDef *p)
     int i = port_index(p);
     if (i < 0) return false;
     RCC->AHB1ENR |= 1UL << (unsigned)i;
-    (void)RCC->AHB1ENR; /* peripheral clock enable propagation */
+    (void)RCC->AHB1ENR;
     return true;
 }
 
@@ -54,8 +54,7 @@ IoResult io_configure(GPIO_TypeDef *p, uint16_t mask, const IoConfig *c, uint16_
         if (!(mask & (1U << pin))) continue;
         IoConfig old;
         (void)io_get_config(p, pin, &old);
-        /* AF output is controlled by a peripheral, not ODR. A generic GPIO
-         * driver cannot promise a glitch-free takeover of an active AF. */
+
         if (old.mode == IO_ALTERNATE && c->mode != IO_INPUT && c->mode != IO_ANALOG &&
             (c->mode != IO_ALTERNATE || old.alternate != c->alternate ||
              old.speed != c->speed || old.pull != c->pull || old.open_drain != c->open_drain))
@@ -71,12 +70,9 @@ IoResult io_configure(GPIO_TypeDef *p, uint16_t mask, const IoConfig *c, uint16_
         af_bits[pin / 8] |= (uint32_t)c->alternate << ((pin % 8) * 4);
         if (c->mode == IO_INPUT || c->mode == IO_ANALOG) release_mask |= 3UL << shift;
     }
-    /* Release outputs BEFORE changing their electrical parameters on exit.
-     * Output->output never goes through input/high impedance. */
+
     if (release_mask) p->MODER = (p->MODER & ~release_mask) | (modes & release_mask);
-    /* When changing a driven open-drain output to push-pull, first enable
-     * push-pull at the old latch level. Do not first release an OD low output
-     * by loading a high latch, which could leave a floating interval. */
+
     if (c->mode == IO_OUTPUT && !c->open_drain) {
         uint32_t driven = 0;
         for (unsigned pin = 0; pin < 16; ++pin)
@@ -84,7 +80,7 @@ IoResult io_configure(GPIO_TypeDef *p, uint16_t mask, const IoConfig *c, uint16_
                 driven |= 1UL << pin;
         if (driven) p->OTYPER &= ~driven;
     }
-    /* Preload latch BEFORE enabling output; update multiple signals atomically. */
+
     if (c->mode == IO_OUTPUT) io_write(p, mask, initial);
     p->OSPEEDR = (p->OSPEEDR & ~field_mask) | speeds;
     p->PUPDR = (p->PUPDR & ~field_mask) | pulls;

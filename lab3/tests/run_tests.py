@@ -1,9 +1,3 @@
-"""Execute the compiled Cortex-M4 piano and real HAL UART with modeled MMIO.
-
-The model supplies RCC ready/status flags, UART flags and IRQ boundaries, and
-GPIO BSRR effects. Timer registers are inspected; PWM edges, sound, USB and real
-interrupt timing require validation on the SDK-1.1MC.427 board.
-"""
 from pathlib import Path
 import math
 import struct
@@ -22,13 +16,11 @@ TIM2 = 0x40000000
 RXNE, TC, TXE = 0x20, 0x40, 0x80
 checks = 0
 
-
 def check(condition, message):
     global checks
     checks += 1
     if not condition:
         raise AssertionError(message)
-
 
 class Board:
     def __init__(self, firmware=False):
@@ -164,7 +156,6 @@ class Board:
         self.settle(now)
         return bytes(self.output)
 
-
 def check_clock(board):
     check(board.read32(board.symbols['SystemCoreClock']) == 120000000,
           'PLL produces 120 MHz HCLK')
@@ -182,7 +173,6 @@ def check_clock(board):
     check(board.read32(0xE000E014) == 119999, 'SysTick remains 1 ms at 120 MHz')
     check(board.read32(UART + 8) == 1042, '57600 UART baud at APB2 60 MHz')
 
-
 def frequencies_and_timer():
     board = Board()
     check(board.call('sound_init') == 1, 'sound init')
@@ -196,13 +186,12 @@ def frequencies_and_timer():
             check(board.call('sound_set_frequency', actual) == 1,
                   f'timer accepts octave {octave}, note {note}')
             ticks = board.read32(TIM2 + 0x2C) + 1
-            # Independent error bound: nearest integer period differs by <= 0.5 tick.
+
             check(abs(60000000000 / actual - ticks) <= 0.500001,
                   f'32-bit timer period octave {octave}, note {note}')
             check(board.read32(TIM2 + 0x34) == ticks // 2,
                   'PWM duty cycle is half the period')
     check(board.read32(0x40020020) >> 20 & 15 == 1, 'PA5 uses TIM2 AF1')
-
 
 def uart_application():
     board = Board()
@@ -211,7 +200,7 @@ def uart_application():
     check(board.nvic and board.read32(UART + 12) & RXNE, 'UART receive IRQ armed')
     check(board.read32(0x40020024) & 0xFF0 == 0x770, 'UART PA9/PA10 AF7')
     check(not board.call('test_active'), 'silent at boot')
-    # A single key without Enter must reach the timer and produce an echoed reply.
+
     output = board.send(b'6', 100)
     check(output.startswith(b'6') and b'440.000 Hz' in output,
           'instant key echo and note report without Enter')
@@ -273,16 +262,14 @@ def uart_application():
     check(b'input lost' in board.output, 'RX overflow reported')
     check(b'261.626 Hz' in board.send(b'1', 11005), 'RX works after overflow')
 
-
 def warm_clock():
     board = Board()
-    # Debugger reset-init can leave a running PLL with a different multiplier.
+
     board.write32(RCC, 0x03000083)
     board.write32(RCC + 4, 8 | (168 << 6) | (7 << 24))
     board.write32(RCC + 8, 10)
     check(board.call('test_boot') == 1, 'initialization tolerates an already running different PLL')
     check_clock(board)
-
 
 def boot_firmware():
     board = Board(firmware=True)
@@ -292,7 +279,7 @@ def boot_firmware():
     board.uc.emu_start(board.symbols['Reset_Handler'] | 1, 0x080FFFF0, count=30000)
 
     def run_main():
-        # Dispatch at instruction boundaries while keeping main's live registers.
+
         context = board.uc.context_save()
         board.sr |= TC | TXE
         board.irq()
@@ -323,7 +310,6 @@ def boot_firmware():
     check(board.read32(TIM2 + 0x34) == 0 and not board.read32(TIM2) & 1,
           'production main stops PWM at note deadline')
 
-
 def main():
     unit = Board()
     unit.call('test_entry')
@@ -339,7 +325,6 @@ def main():
     report = f'PASS: {count} Cortex-M4 C assertions; {checks - before} timer/UART/boot checks\n'
     (ROOT / 'build/test-results.txt').write_text(report, encoding='utf-8')
     print(report, end='')
-
 
 if __name__ == '__main__':
     main()

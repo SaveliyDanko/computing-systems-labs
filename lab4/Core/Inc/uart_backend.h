@@ -5,7 +5,7 @@
 #include "stm32f4xx.h"
 bool uart_backend_init(void);
 bool uart_backend_mode(bool interrupts);
-/* -1: corrupt input discarded; 0: no byte; 1: one byte. */
+
 int uart_backend_receive(uint8_t *byte);
 bool uart_backend_transmit(uint8_t *byte, bool interrupts);
 bool uart_backend_idle(void);

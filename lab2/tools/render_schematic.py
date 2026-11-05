@@ -1,4 +1,3 @@
-"""Development helper: render PDF page without Pillow (pypdfium2 required)."""
 import struct
 import sys
 import zlib

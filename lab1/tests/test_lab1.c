@@ -5,7 +5,7 @@
 #include "board.h"
 
 volatile uint32_t test_done, test_failure, test_checks;
-/* The Python runner monitors every MMIO write while these guards are set. */
+
 volatile uint32_t guard_high, guard_driven;
 #define CHECK(x) do { ++test_checks; if (!(x)) {test_failure = __LINE__; test_done = 1; for (;;) {}} } while (0)
 
@@ -32,7 +32,7 @@ static void debounce_tests(void)
     CHECK(!button_update(&b, true, 18));
     CHECK(button_update(&b, true, 19));
     button_init(&b, true, 0, 30);
-    CHECK(!button_update(&b, true, 1000)); /* held at reset is not a new press */
+    CHECK(!button_update(&b, true, 1000));
 }
 
 static void traffic_tests(void)
@@ -55,7 +55,7 @@ static void traffic_tests(void)
 
     traffic_init(&t, 0);
     traffic_update(&t, true, 1000); CHECK(t.request);
-    traffic_update(&t, true, 2000); /* repeated requests never restart red */
+    traffic_update(&t, true, 2000);
     traffic_update(&t, false, 2999); CHECK(t.state == TRAFFIC_RED);
     traffic_update(&t, false, 3000); CHECK(t.state == TRAFFIC_GREEN && !t.request);
     traffic_update(&t, false, 6000);
@@ -68,7 +68,6 @@ static void traffic_tests(void)
     traffic_init(&t, 0);
     traffic_update(&t, true, 8000); CHECK(t.state == TRAFFIC_GREEN && !t.request);
 
-    /* Requests in both permitted non-red phases preserve their full length. */
     for (unsigned phase = 0; phase < 2; ++phase) {
         traffic_init(&t, 0);
         traffic_update(&t, false, 12000);
@@ -84,7 +83,6 @@ static void traffic_tests(void)
     traffic_update(&t, true, 1999); CHECK(t.state == TRAFFIC_RED);
     traffic_update(&t, false, 2000); CHECK(t.state == TRAFFIC_GREEN);
 
-    /* Integration: bouncing/held physical button consumes only one red. */
     Button b;
     traffic_init(&t, 0); button_init(&b, false, 0, 30);
     for (uint32_t now = 0; now <= 10000; ++now) {
@@ -103,7 +101,7 @@ static void gpio_tests(void)
     CHECK(io_clock_enable(GPIOD));
     CHECK((RCC->AHB1ENR & (1U << 3)) != 0);
     CHECK(!io_clock_enable((GPIO_TypeDef *)0));
-    GPIOD->MODER = 3; /* unrelated pin 0 stays analog */
+    GPIOD->MODER = 3;
     GPIOD->ODR = 1;
     guard_high = pin;
     CHECK(io_configure(GPIOD, pin, &c, pin) == IO_OK);
@@ -118,7 +116,7 @@ static void gpio_tests(void)
     guard_high = guard_driven = 0;
     io_write_pin(GPIOD, 2, false); CHECK(io_read_latch(GPIOD, pin | 1U) == 1);
     io_write(GPIOD, 0x000C, 8); CHECK(io_read_latch(GPIOD, 15) == 9);
-    GPIOD->IDR = pin; /* test harness stimulus, never done by production driver */
+    GPIOD->IDR = pin;
     CHECK(io_read_pin(GPIOD, 2)); CHECK(!io_read_pin(GPIOD, 3));
     CHECK(io_read(GPIOD, 15) == pin);
     uint32_t old_moder = GPIOD->MODER, old_odr = GPIOD->ODR;

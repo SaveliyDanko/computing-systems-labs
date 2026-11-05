@@ -8,9 +8,6 @@ typedef struct { uint32_t errors, nacks, timeouts; } I2cBusStats;
 #define I2C_BUS_TIMEOUT_MS 10U
 #define I2C_BUS_RECOVERY_MAX_MS 30U
 
-/* Single main-context owner, no interrupts/DMA and no active waits. Addresses
- * are seven-bit. A transaction writes one register, optionally then reading
- * one byte with repeated START. The result is latched until the next start. */
 bool i2c_bus_init(void);
 bool i2c_bus_write_reg(uint8_t address, uint8_t reg, uint8_t value, uint32_t now_ms);
 bool i2c_bus_read_reg(uint8_t address, uint8_t reg, uint32_t now_ms);

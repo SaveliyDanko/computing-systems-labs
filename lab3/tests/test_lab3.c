@@ -89,7 +89,6 @@ void test_entry(void)
     CHECK(piano_duration_ms(&p) == 5000);
     CHECK(piano_input(&p, 'A', 0) == PIANO_EVENT_LIMIT && piano_duration_ms(&p) == 5000);
 
-    /* Changing future settings leaves the current note's snapshot intact. */
     piano_init(&p);
     CHECK(piano_input(&p, '6', 100) == PIANO_EVENT_NOTE);
     CHECK(piano_input(&p, '+', 200) == PIANO_EVENT_OCTAVE);
@@ -104,7 +103,6 @@ void test_entry(void)
     CHECK(piano_input(&p, '6', 1100) == PIANO_EVENT_NOTE);
     CHECK(piano_frequency_millihz(&p) == 880000 && piano_playback_duration_ms(&p) == 1100);
 
-    /* Scale snapshots settings for all seven notes, including late updates. */
     piano_init(&p);
     CHECK(piano_input(&p, '\r', 100) == PIANO_EVENT_SCALE);
     CHECK(piano_input(&p, '\n', 200) == PIANO_EVENT_IGNORED);
@@ -132,7 +130,7 @@ void test_entry(void)
     CHECK(!piano_is_scale(&p) && piano_current_note(&p) == 2);
     CHECK(piano_input(&p, '\r', 12500) == PIANO_EVENT_SCALE && piano_current_note(&p) == 0);
     CHECK(piano_input(&p, 'x', 12501) == PIANO_EVENT_INVALID);
-    CHECK(piano_input(&p, '\n', 12502) == PIANO_EVENT_SCALE); /* x breaks CRLF pairing. */
+    CHECK(piano_input(&p, '\n', 12502) == PIANO_EVENT_SCALE);
 
     piano_init(&p);
     CHECK(piano_input(&p, '1', UINT32_MAX - 499U) == PIANO_EVENT_NOTE);
@@ -146,7 +144,6 @@ void test_entry(void)
     piano_update(&p, 6500);
     CHECK(!piano_is_playing(&p) && piano_frequency_millihz(&p) == 0);
 
-    /* Real 32-bit TIM2 programming, not a mock sound backend. */
     CHECK(sound_init());
     CHECK((GPIOA->MODER & (3U << 10)) == (2U << 10));
     CHECK(((GPIOA->AFR[0] >> 20) & 15U) == 1);

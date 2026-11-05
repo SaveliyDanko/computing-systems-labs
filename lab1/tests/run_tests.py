@@ -1,7 +1,3 @@
-"""Execute the actual Cortex-M4 C tests; model only GPIO BSRR side effects.
-Not an RM0090 simulator submission (part 2 uses the firmware GPIO driver).
-Requires: pip install unicorn
-"""
 import os
 from pathlib import Path
 import struct
@@ -36,7 +32,7 @@ def on_write(emu, access, address, size, value, user):
         completed = True
         emu.emu_stop()
         return
-    # GPIO D: model atomic set/reset so C can check latch values.
+
     base = 0x40020C00
     if base <= address < base + 0x28:
         trace.append(f'GPIOD +0x{address-base:02X} <- 0x{value:08X}')
@@ -60,7 +56,7 @@ uc.hook_add(UC_HOOK_MEM_WRITE, on_write)
 uc.emu_start(symbols['test_entry'] | 1, 0x080FFFF0, count=10000000)
 failure = read32(symbols['test_failure'])
 checks = read32(symbols['test_checks'])
-# Write hook stops just before the test_done store, so completion uses PC hook state.
+
 if failure:
     raise SystemExit(f'FAIL: test_lab1.c:{failure} (check {checks})')
 if not completed or checks < 80:

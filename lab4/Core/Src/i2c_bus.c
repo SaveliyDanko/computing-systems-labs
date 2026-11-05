@@ -21,8 +21,7 @@ static bool configure_bus_pins(IoMode mode)
     const IoConfig pins = {mode, IO_NO_PULL, 2, true,
                           mode == IO_ALTERNATE ? BOARD_I2C_AF : 0};
     const uint16_t mask = (uint16_t)((1U << BOARD_I2C_SCL_PIN) | (1U << BOARD_I2C_SDA_PIN));
-    /* Stop peripheral drive before this call. Release explicitly for the GPIO
-     * driver's AF/output handoff protection; preload both OD outputs high. */
+
     return io_configure(BOARD_I2C_PORT, mask, &released, 0) == IO_OK &&
            io_configure(BOARD_I2C_PORT, mask, &pins, mask) == IO_OK;
 }
@@ -33,7 +32,7 @@ static void reset_peripheral(void)
     RCC->APB1RSTR &= ~RCC_APB1RSTR_I2C1RST;
     I2C1->CR1 = 0;
     I2C1->CR2 = BOARD_I2C_PCLK_HZ / 1000000U;
-    I2C1->OAR1 = 1U << 14; /* RM0090: bit 14 must be kept at one. */
+    I2C1->OAR1 = 1U << 14;
     I2C1->OAR2 = 0;
     I2C1->CCR = (BOARD_I2C_PCLK_HZ + 2U * BOARD_I2C_BAUD - 1U) / (2U * BOARD_I2C_BAUD);
     I2C1->TRISE = BOARD_I2C_PCLK_HZ / 1000000U + 1U;
@@ -43,8 +42,7 @@ static void reset_peripheral(void)
 
 bool i2c_bus_init(void)
 {
-    /* PD7 enables the PCA9517 bridge to the on-board I2C devices. The keyboard
-     * expander's own nRESET is tied high; PD7 is not its reset input. */
+
     const IoConfig enable = {IO_OUTPUT, IO_NO_PULL, 0, false, 0};
     if (!io_clock_enable(BOARD_I2C_ENABLE_PORT) ||
         io_configure(BOARD_I2C_ENABLE_PORT, (uint16_t)(1U << BOARD_I2C_ENABLE_PIN),
@@ -87,7 +85,7 @@ static void fail(uint32_t status, bool timeout, uint32_t now)
     ++bus.stats.errors;
     if (status & I2C_SR1_AF) ++bus.stats.nacks;
     if (timeout) ++bus.stats.timeouts;
-    /* Let STOP actually reach the target before resetting the peripheral. */
+
     if (I2C1->SR2 & I2C_SR2_MSL) I2C1->CR1 |= I2C_CR1_STOP;
     bus.phase = ERROR_STOP;
     bus.phase_started = bus.recovery_started = now;
@@ -108,7 +106,7 @@ static void recover(uint32_t now)
         return;
     }
     if (bus.phase == ERROR_STOP) {
-        /* An interrupted one-byte reception can be stretching SCL on RXNE. */
+
         if (I2C1->SR1 & I2C_SR1_RXNE) (void)I2C1->DR;
         if (!(I2C1->CR1 & I2C_CR1_STOP) && !(I2C1->SR2 & I2C_SR2_BUSY)) {
             reset_peripheral();
@@ -130,8 +128,7 @@ static void recover(uint32_t now)
         bus.phase = CLEAR_HIGH;
         break;
     case CLEAR_HIGH:
-        /* OD HIGH releases the line. If a device holds SCL low, do not count
-         * a clock; the overall recovery deadline still bounds this state. */
+
         if (!io_read_pin(BOARD_I2C_PORT, BOARD_I2C_SCL_PIN)) return;
         if (++bus.pulses < 9U) {
             io_write_pin(BOARD_I2C_PORT, BOARD_I2C_SCL_PIN, false);
@@ -164,7 +161,7 @@ void i2c_bus_service(uint32_t now_ms)
     if (bus.result != I2C_BUS_PENDING) return;
     if (bus.phase >= ERROR_STOP) { recover(now_ms); return; }
     uint32_t status = I2C1->SR1;
-    /* ES0206 2.10.1: a lone BERR can be spurious; clear it and continue. */
+
     if ((status & I2C_SR1_BERR) &&
         !(status & (I2C_SR1_ARLO | I2C_SR1_AF | I2C_SR1_OVR | I2C_SR1_TIMEOUT))) {
         I2C1->SR1 &= ~I2C_SR1_BERR;
@@ -194,7 +191,7 @@ void i2c_bus_service(uint32_t now_ms)
         break;
     case ADDRESS_W:
         if (status & I2C_SR1_ADDR) {
-            (void)I2C1->SR2; /* SR1 was read above; SR1 -> SR2 clears ADDR. */
+            (void)I2C1->SR2;
             bus.phase = REGISTER_BYTE;
         }
         break;
@@ -229,8 +226,7 @@ void i2c_bus_service(uint32_t now_ms)
         break;
     case ADDRESS_R:
         if (status & I2C_SR1_ADDR) {
-            /* RM0090 one-byte master reception: clear ACK, clear ADDR, STOP.
-             * Keep that short sequence indivisible from SysTick/UART IRQ. */
+
             uint32_t primask = __get_PRIMASK();
             __disable_irq();
             I2C1->CR1 &= ~I2C_CR1_ACK;
@@ -250,6 +246,6 @@ void i2c_bus_service(uint32_t now_ms)
         if (!(I2C1->CR1 & I2C_CR1_STOP) && !(I2C1->SR2 & I2C_SR2_BUSY))
             bus.result = I2C_BUS_OK;
         break;
-    default: break; /* Recovery phases are handled above. */
+    default: break;
     }
 }

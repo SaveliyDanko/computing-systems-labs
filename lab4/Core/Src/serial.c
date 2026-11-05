@@ -21,8 +21,7 @@ bool serial_init(bool interrupts)
 bool serial_write(const void *data, size_t size)
 {
     if (!data && size) return false;
-    /* TX indices/count are owned by main; ISR only clears busy.
-     * Copy with interrupts enabled so a large write cannot stall RX. */
+
     if (size > SERIAL_TX_CAPACITY - tx_count) return false;
     const uint8_t *bytes = data;
     for (size_t i = 0; i < size; ++i) {
@@ -108,7 +107,7 @@ void serial_service(void)
         } else busy = false;
         unlock(p);
     } else {
-        /* SysTick remains enabled during bounded HAL polling transfers. */
+
         tx_byte = tx[tx_tail];
         if (uart_backend_transmit(&tx_byte, false)) {
             tx_tail = (uint16_t)((tx_tail + 1U) % SERIAL_TX_CAPACITY);

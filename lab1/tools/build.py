@@ -1,4 +1,3 @@
-"""Build with CubeIDE's ARM toolchain, independent of an IDE workspace."""
 import argparse
 import os
 from pathlib import Path

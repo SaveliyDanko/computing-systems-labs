@@ -33,7 +33,7 @@ uint8_t keypad_filter_update(KeypadFilter *filter, uint16_t mask, bool valid,
 {
     if (!valid || mask > KEYPAD_KEY_MASK ||
         (mask != 0u && (mask & (uint16_t)(mask - 1u)) != 0u)) {
-        /* Chords/errors must not leave a pending candidate or release timer. */
+
         keypad_filter_rearm(filter, now_ms);
         return 0u;
     }
@@ -109,12 +109,11 @@ static void start_write(Keypad *keypad, uint8_t reg, uint8_t value,
     if (i2c_bus_write_reg(KEYPAD_I2C_ADDRESS, reg, value, now_ms)) {
         transition(keypad, wait_state, now_ms);
     } else if (now_ms - keypad->state_since_ms >= I2C_BUS_TIMEOUT_MS) {
-        /* Also covers a peripheral that never becomes ready for a new START. */
+
         scan_error(keypad, now_ms);
     }
 }
 
-/* 1: complete, 0: pending, -1: failed (and retry already scheduled). */
 static int transaction_complete(Keypad *keypad, uint32_t now_ms)
 {
     const I2cBusResult result = i2c_bus_result();
@@ -149,7 +148,7 @@ uint8_t keypad_update(Keypad *keypad, uint32_t now_ms)
 
     switch (keypad->state) {
     case KEYPAD_SCAN_SAFE_START:
-        /* Release every row before changing output or polarity registers. */
+
         start_write(keypad, PCA9538_CONFIG_REG, 0xFFu,
                     KEYPAD_SCAN_SAFE_WAIT, now_ms);
         break;
@@ -177,7 +176,7 @@ uint8_t keypad_update(Keypad *keypad, uint32_t now_ms)
         }
         break;
     case KEYPAD_SCAN_ROW_START:
-        /* Output latch stays zero. Every unselected row stays high impedance. */
+
         start_write(keypad, PCA9538_CONFIG_REG,
                     (uint8_t)(0xFFu & ~(1u << keypad->row)),
                     KEYPAD_SCAN_ROW_WAIT, now_ms);

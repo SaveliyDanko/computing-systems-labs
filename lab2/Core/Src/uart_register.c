@@ -1,4 +1,3 @@
-/* Part 2: no HAL/LL UART calls. CMSIS supplies registers and NVIC. */
 #ifdef UART_REGISTER_BACKEND
 #include "uart_backend.h"
 #include "board.h"
@@ -14,7 +13,6 @@ bool uart_backend_init(void)
     USART1->CR1 = 0;
     USART1->CR2 = 0;
     USART1->CR3 = 0;
-    /* APB2=HSI 16 MHz, OVER8=0: rounded PCLK/baud is the BRR encoding. */
     USART1->BRR = (16000000U + BOARD_UART_BAUD / 2U) / BOARD_UART_BAUD;
     USART1->CR1 = USART_CR1_UE | USART_CR1_RE | USART_CR1_TE;
     pending_tx = 0;

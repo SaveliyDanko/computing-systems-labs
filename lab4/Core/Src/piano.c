@@ -1,17 +1,15 @@
 #include "piano.h"
 
-/* Rounded from 440000 * 2^((MIDI_note - 69) / 12), in millihertz.
- * Keeping the table integral avoids floating-point work on the target. */
 static const uint32_t note_frequencies[PIANO_OCTAVE_COUNT][PIANO_NOTE_COUNT] = {
-    { 16352u, 18354u, 20602u, 21827u, 24500u, 27500u, 30868u }, /* C0..B0 */
-    { 32703u, 36708u, 41203u, 43654u, 48999u, 55000u, 61735u }, /* C1..B1 */
-    { 65406u, 73416u, 82407u, 87307u, 97999u, 110000u, 123471u }, /* C2..B2 */
-    { 130813u, 146832u, 164814u, 174614u, 195998u, 220000u, 246942u }, /* C3..B3 */
-    { 261626u, 293665u, 329628u, 349228u, 391995u, 440000u, 493883u }, /* C4..B4 */
-    { 523251u, 587330u, 659255u, 698456u, 783991u, 880000u, 987767u }, /* C5..B5 */
-    { 1046502u, 1174659u, 1318510u, 1396913u, 1567982u, 1760000u, 1975533u }, /* C6..B6 */
-    { 2093005u, 2349318u, 2637020u, 2793826u, 3135963u, 3520000u, 3951066u }, /* C7..B7 */
-    { 4186009u, 4698636u, 5274041u, 5587652u, 6271927u, 7040000u, 7902133u } /* C8..B8 */
+    { 16352u, 18354u, 20602u, 21827u, 24500u, 27500u, 30868u },
+    { 32703u, 36708u, 41203u, 43654u, 48999u, 55000u, 61735u },
+    { 65406u, 73416u, 82407u, 87307u, 97999u, 110000u, 123471u },
+    { 130813u, 146832u, 164814u, 174614u, 195998u, 220000u, 246942u },
+    { 261626u, 293665u, 329628u, 349228u, 391995u, 440000u, 493883u },
+    { 523251u, 587330u, 659255u, 698456u, 783991u, 880000u, 987767u },
+    { 1046502u, 1174659u, 1318510u, 1396913u, 1567982u, 1760000u, 1975533u },
+    { 2093005u, 2349318u, 2637020u, 2793826u, 3135963u, 3520000u, 3951066u },
+    { 4186009u, 4698636u, 5274041u, 5587652u, 6271927u, 7040000u, 7902133u }
 };
 
 static const char *const note_names[PIANO_NOTE_COUNT] = {
@@ -70,7 +68,7 @@ piano_event_t piano_input(piano_t *piano, uint8_t byte, uint32_t now_ms)
         piano->suppress_lf = false;
         return PIANO_EVENT_IGNORED;
     }
-    /* Suppression applies only to an LF immediately following a CR. */
+
     piano->suppress_lf = byte == '\r';
 
     if (byte >= '1' && byte <= '7') {

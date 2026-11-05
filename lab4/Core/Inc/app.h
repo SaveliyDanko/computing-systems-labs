@@ -26,8 +26,6 @@ typedef struct {
     AppReport reports[APP_REPORT_CAPACITY];
 } App;
 
-/* Call after clock_init, sound_init and serial_init(true). Starts in TEST.
- * UART is an output/diagnostic channel; input comes from the physical keys. */
 bool app_init(App *app, uint32_t now_ms);
 bool app_update(App *app, uint32_t now_ms);
 AppMode app_mode(const App *app);

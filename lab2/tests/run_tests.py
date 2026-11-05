@@ -1,9 +1,3 @@
-"""Run compiled Cortex-M4 C against a small USART1/GPIO MMIO test model.
-
-The model drives RXNE, TXE, TC, SR->DR clearing and NVIC enable bits.
-It calls the real USART1 ISR at application boundaries; it is not a hardware
-timing model, and cannot confirm the physical FT2232/COM connection.
-"""
 import argparse
 from pathlib import Path
 import struct
@@ -20,13 +14,11 @@ UART = 0x40011000
 RXNE, TC, TXE = 0x20, 0x40, 0x80
 checks = 0
 
-
 def check(condition, message):
     global checks
     checks += 1
     if not condition:
         raise AssertionError(message)
-
 
 class Board:
     def __init__(self, backend, firmware=False):
@@ -51,7 +43,7 @@ class Board:
         self.hold_tx = False
         self.tx_reads = 0
         self.completed = False
-        self.write32(0x40023800, 0x83)  # RCC reset HSI state.
+        self.write32(0x40023800, 0x83)
         self.uc.hook_add(UC_HOOK_MEM_READ, self.on_read)
         self.uc.hook_add(UC_HOOK_MEM_WRITE, self.on_write)
         self.uc.hook_add(UC_HOOK_CODE, self.on_tick, begin=self.symbols['HAL_GetTick'] & ~1,
@@ -64,7 +56,7 @@ class Board:
         self.uc.mem_write(address, struct.pack('<I', value & 0xFFFFFFFF))
 
     def on_tick(self, uc, address, size, user):
-        # Let bounded polling timeouts expire even without a hardware SysTick.
+
         tick = self.symbols['uwTick']
         self.write32(tick, self.read32(tick) + 1)
 
@@ -88,7 +80,7 @@ class Board:
             previous = self.read32(word)
             self.write32(word, (previous & ~(1 << bit)) | ((value & 1) << bit))
         elif address == UART:
-            # Software can clear status; it cannot set TXE/TC by writing one.
+
             self.sr &= value | ~0x7F
         elif address == UART + 4:
             self.output.append(value & 0xFF)
@@ -136,7 +128,7 @@ class Board:
 
     def inject(self, byte, errors=0):
         if self.sr & RXNE:
-            self.sr |= 8  # Overrun preserves the previous DR byte.
+            self.sr |= 8
         else:
             self.rx = byte
         self.sr |= RXNE | errors
@@ -146,7 +138,7 @@ class Board:
         for _ in range(3000):
             self.step()
             if self.call('serial_idle') and not self.call('serial_switch_pending'):
-                # One more step lets the console enqueue a pending switch reply.
+
                 self.step()
                 if self.call('serial_idle'):
                     return
@@ -159,7 +151,6 @@ class Board:
             self.step()
         self.settle()
         return bytes(self.output)
-
 
 def exercise(backend, interrupts):
     board = Board(backend)
@@ -194,12 +185,12 @@ def exercise(backend, interrupts):
         check(board.read32(UART + 12) & 0x1F0 == 0 and board.read32(UART + 20) & 1 == 0,
               'polling disables all UART interrupt sources')
     check(board.call('test_rx_errors') == 0 and board.call('test_tx_errors') == 0, 'clean exchange')
-    board.inject(ord('?'), 2)  # Framing error must not execute a corrupt command.
+    board.inject(ord('?'), 2)
     board.step()
     check(board.call('test_rx_errors') == 1, 'framing error counted')
     check(b'input lost' in board.send(b'\r'), 'error line discarded')
     check(b'timeout 12' in board.send(b'?\r'), 'RX rearmed after error')
-    # Exercise queue overflow with real interrupt RX and no application reads.
+
     board.send(b'set interrupts on\r')
     for _ in range(140):
         board.inject(ord('x'))
@@ -213,7 +204,7 @@ def exercise(backend, interrupts):
     check(board.call('test_fill_tx', 513) == 0, 'oversized write is atomic')
     board.settle()
     check(bytes(board.output) == bytes(ord('a') + i % 26 for i in range(512)), 'TX order across wrap')
-    # A pending switch must wait for TC, including the byte already removed from TX.
+
     board.hold_tx = True
     board.sr |= TXE | TC
     check(board.call('test_fill_tx', 1), 'queue byte for switch')
@@ -236,13 +227,12 @@ def exercise(backend, interrupts):
         board.settle()
         check(bytes(board.output) == b'a', 'timeout does not resend an accepted byte')
 
-
 def boot_firmware(backend):
     board = Board(backend, firmware=True)
     check(board.read32(0x080000D4) == board.symbols['USART1_IRQHandler'], 'USART1 vector points to real ISR')
     board.uc.emu_start(board.symbols['Reset_Handler'] | 1, 0x080FFFF0, count=15000)
     for _ in range(200):
-        # ISR has its own test stack; restore main registers after dispatch.
+
         context = board.uc.context_save()
         board.sr |= TC | TXE
         board.irq()
@@ -252,7 +242,6 @@ def boot_firmware(backend):
           'production Reset_Handler/main emits startup greeting')
     check(board.read32(board.symbols['lab2_fault']) == 0, 'production boot has no fatal error')
     check(board.nvic and board.read32(UART + 8) == 278, 'production UART initialized')
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -275,7 +264,6 @@ def main():
     report = '\n'.join(reports) + '\n'
     (ROOT / 'build/test-results.txt').write_text(report)
     print(report, end='')
-
 
 if __name__ == '__main__':
     main()

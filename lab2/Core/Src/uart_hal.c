@@ -1,4 +1,3 @@
-/* Part 1: HAL polling and HAL interrupt adapters, selected at runtime. */
 #ifndef UART_REGISTER_BACKEND
 #include "stm32f4xx_hal.h"
 #include "uart_backend.h"
@@ -36,7 +35,6 @@ bool uart_backend_mode(bool interrupts)
     HAL_NVIC_DisableIRQ(USART1_IRQn);
     if (HAL_UART_AbortReceive(&uart) != HAL_OK) return false;
     irq_enabled = interrupts;
-    /* Drain a pending byte before arming asynchronous receive. */
     uint8_t byte;
     int status = uart_backend_receive(&byte);
     if (status > 0) serial_received(byte);
@@ -54,7 +52,6 @@ bool uart_backend_transmit(uint8_t *byte, bool interrupts)
     if (!__HAL_UART_GET_FLAG(&uart, UART_FLAG_TXE)) return false;
     HAL_StatusTypeDef result = HAL_UART_Transmit(&uart, byte, 1, 2);
     if (result == HAL_TIMEOUT) {
-        /* TXE was set: the byte was written; do not duplicate it on TC timeout. */
         serial_transmit_error();
         return true;
     }

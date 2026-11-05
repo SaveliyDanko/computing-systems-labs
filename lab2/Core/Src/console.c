@@ -44,7 +44,6 @@ void console_update(Console *c, Traffic *t)
     for (unsigned i = 0; i < 16 && serial_tx_free() >= CONSOLE_REPLY_RESERVE; ++i) {
         uint8_t byte;
         if (!serial_read(&byte)) return;
-        /* RX may have faulted in an ISR since the start of this batch. */
         epoch = serial_rx_epoch();
         if (epoch != c->rx_epoch) {
             c->rx_epoch = epoch;

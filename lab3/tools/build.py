@@ -1,4 +1,3 @@
-"""Build the standalone STM32F427 piano firmware or its Cortex-M4 tests."""
 import argparse
 import os
 from pathlib import Path
@@ -6,7 +5,6 @@ import shutil
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-
 
 def toolchain():
     supplied = os.environ.get('ARM_GCC_BIN')
@@ -20,10 +18,8 @@ def toolchain():
         raise SystemExit('Set ARM_GCC_BIN to the folder containing arm-none-eabi-gcc.')
     return candidates[-1].parent
 
-
 def run(args):
     subprocess.run([str(a) for a in args], cwd=ROOT, check=True)
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -69,7 +65,6 @@ def main():
     run([bin_dir / ('arm-none-eabi-objcopy' + suffix), '-O', 'binary', elf, out / (target + '.bin')])
     run([bin_dir / ('arm-none-eabi-size' + suffix), elf])
     print('Built', elf)
-
 
 if __name__ == '__main__':
     main()

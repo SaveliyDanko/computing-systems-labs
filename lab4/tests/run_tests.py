@@ -1,9 +1,3 @@
-"""Execute the compiled Cortex-M4 keypad app and real I2C/UART drivers with modeled MMIO.
-
-The model supplies RCC flags, UART IRQ boundaries, GPIO BSRR, I2C handshakes and
-a PCA9538 connected to a diode-less switch matrix. Timer registers are inspected;
-physical I2C edges, PWM, sound, USB and interrupt timing require board validation.
-"""
 from pathlib import Path
 import struct
 
@@ -22,16 +16,14 @@ I2C = 0x40005400
 RXNE, TC, TXE = 0x20, 0x40, 0x80
 checks = 0
 
-
 def check(condition, message):
     global checks
     checks += 1
     if not condition:
         raise AssertionError(message)
 
-
 class I2cModel:
-    """Byte-level I2C1 and PCA9538 model; no application functions are mocked."""
+
     def __init__(self, board):
         self.board = board
         self.pca = [0xFF, 0xFF, 0, 0xFF]
@@ -69,7 +61,7 @@ class I2cModel:
             self.board.write32(I2C + offset, 0)
 
     def inputs(self):
-        # Connected switch components model ordinary diode-less matrix ghosting.
+
         edges = [set() for _ in range(7)]
         for col in range(3):
             for row in range(4):
@@ -168,7 +160,7 @@ class I2cModel:
                     previous & 1 and not value & 1 and not self.read_drained):
                 self.target_stuck = True
                 self.trace.append(('stop_cancelled',))
-            self.cr1 = value & ~0x100  # START self-clears when sent.
+            self.cr1 = value & ~0x100
             if value & 0x100:
                 if self.target_stuck or self.scl_stuck:
                     return
@@ -202,7 +194,6 @@ class I2cModel:
         elif address == I2C + 0x14:
             self.sr1 &= value
 
-
 class Board:
     def __init__(self, firmware=False):
         self.uc = Uc(UC_ARCH_ARM, UC_MODE_THUMB | UC_MODE_MCLASS)
@@ -230,7 +221,7 @@ class Board:
         self.tx_reads = 0
         self.write32(RCC, 0x83)
         self.write32(RCC + 4, 0x24003010)
-        self.write32(0x40020810, 1 << 15)  # Released active-low PC15.
+        self.write32(0x40020810, 1 << 15)
         self.i2c = I2cModel(self)
         self.uc.hook_add(UC_HOOK_MEM_READ, self.on_read)
         self.uc.hook_add(UC_HOOK_MEM_WRITE, self.on_write)
@@ -332,8 +323,6 @@ class Board:
         self.sr |= RXNE | errors
         self.irq()
 
-
-
 def i2c_transfer(board, read, reg, value=0, address=0x71, now=0):
     if read:
         started = board.call('i2c_bus_read_reg', address, reg, now)
@@ -346,7 +335,6 @@ def i2c_transfer(board, read, reg, value=0, address=0x71, now=0):
             return board.call('i2c_bus_result')
     raise AssertionError('healthy byte transaction did not complete')
 
-
 def finish_i2c(board, now, limit=35):
     for elapsed in range(limit + 1):
         for _ in range(8):
@@ -354,7 +342,6 @@ def finish_i2c(board, now, limit=35):
             if board.call('i2c_bus_result') != 1:
                 return board.call('i2c_bus_result'), elapsed
     raise AssertionError('I2C cleanup/recovery exceeded its bounded deadline')
-
 
 def bus_registers():
     board = Board()
@@ -371,7 +358,7 @@ def bus_registers():
     check(i2c_transfer(board, False, 1, 0) == 2, 'PCA output write completes')
     check(i2c_transfer(board, False, 2, 0) == 2, 'PCA polarity write completes')
     check(i2c_transfer(board, False, 3, 0xFE) == 2, 'select first row')
-    board.i2c.pressed = 1 << 8  # row0, column2: physical SB9.
+    board.i2c.pressed = 1 << 8
     board.i2c.trace.clear()
     check(i2c_transfer(board, True, 0) == 2, 'PCA input read completes')
     check(board.call('i2c_bus_data') & 0x70 == 0x30, 'selected row drives column2 low')
@@ -428,7 +415,6 @@ def bus_registers():
     board.i2c.external_busy = False
     check(i2c_transfer(board, True, 3, now=311) == 2, 'external bus release permits recovery')
 
-
 def bus_stop_and_recovery():
     board = Board()
     check(board.call('i2c_bus_init') == 1, 'initialize delayed STOP test')
@@ -458,7 +444,7 @@ def bus_stop_and_recovery():
         if any(item[0] == 'read_addr_clear' for item in board.i2c.trace):
             break
     check(not board.i2c.read_drained, 'receive byte is pending before injected fatal error')
-    board.i2c.sr1 |= 0x400  # AF with RXNE already set.
+    board.i2c.sr1 |= 0x400
     board.call('i2c_bus_service', 1)
     result, _ = finish_i2c(board, 1)
     check(result == 3 and board.i2c.read_drained, 'error cleanup drains one-byte RXNE')
@@ -499,7 +485,6 @@ def bus_stop_and_recovery():
     check(held_clock.read32(0x40020400) >> 16 & 15 == 10,
           'bounded failed recovery still restores alternate-function pins')
 
-
 def advance(board, milliseconds, scanner=False):
     if not hasattr(board, 'now'):
         board.now = 0
@@ -518,7 +503,6 @@ def advance(board, milliseconds, scanner=False):
                     raise AssertionError('app_update returned failure')
                 board.irq()
     return events
-
 
 def scanner_matrix():
     board = Board()
@@ -547,7 +531,7 @@ def scanner_matrix():
     check(not advance(board, 150, scanner=True), 'partial chord release cannot create a key')
     board.i2c.pressed = 0
     advance(board, 100, scanner=True)
-    board.i2c.pressed = 0x23  # Three rectangle corners create a fourth electrical phantom.
+    board.i2c.pressed = 0x23
     check(not advance(board, 150, scanner=True), 'ghost rectangle is suppressed')
     check(board.call('test_keypad_mask') == 0x33, 'model reproduces diode-less ghost key')
     check(board.call('test_keypad_events') == before, 'chords do not alter event count')
@@ -563,10 +547,8 @@ def scanner_matrix():
     board.i2c.pressed = 1
     check(advance(board, 130, scanner=True) == [1], 'new press works after failed frame recovery')
 
-
 def set_side(board, pressed):
     board.write32(0x40020810, 0 if pressed else 1 << 15)
-
 
 def app_press(board, code, release=True):
     before = board.call('test_events')
@@ -576,7 +558,6 @@ def app_press(board, code, release=True):
     if release:
         board.i2c.pressed = 0
         advance(board, 100)
-
 
 def application():
     board = Board()
@@ -611,7 +592,7 @@ def application():
     set_side(board, False)
     board.i2c.pressed = 0
     advance(board, 100)
-    # Incoming terminal characters cannot bypass the physical keyboard.
+
     board.inject(ord('6'))
     advance(board, 30)
     check(not board.call('test_frequency'), 'UART input does not control the piano')
@@ -658,7 +639,6 @@ def application():
     check(board.call('test_octave') == 5 and board.call('test_duration') == 1000,
           'mode switch preserves selected piano settings')
 
-
 def mode_during_bus_clear():
     board = Board()
     check(board.call('test_boot') == 1, 'initialize application bus-clear case')
@@ -684,7 +664,6 @@ def mode_during_bus_clear():
     app_press(board, 2)
     check(b'Key 2' in board.output, 'matrix is rearmed after electrical bus recovery')
 
-
 def absent_keyboard_boot():
     board = Board()
     board.i2c.present = False
@@ -703,7 +682,6 @@ def absent_keyboard_boot():
     advance(board, 200)
     app_press(board, 1)
     check(board.call('test_frequency') == 261626, 'hot reconnection restores physical piano input')
-
 
 def production_boot():
     board = Board(firmware=True)
@@ -734,7 +712,6 @@ def production_boot():
     check(b'Key 1' in board.output, 'production firmware reads actual modeled matrix through I2C')
     check(board.read32(board.symbols['lab4_fault']) == 0, 'production scan has no fatal')
 
-
 def main():
     unit = Board()
     unit.call('test_entry')
@@ -753,7 +730,6 @@ def main():
     report = f'PASS: {count} Cortex-M4 C assertions; {checks - before} I2C/keypad/application/boot checks\n'
     (ROOT / 'build/test-results.txt').write_text(report, encoding='utf-8')
     print(report, end='')
-
 
 if __name__ == '__main__':
     main()

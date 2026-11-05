@@ -62,13 +62,13 @@ void console_update(Console *console, piano_t *piano, uint32_t now_ms)
         if (epoch != console->rx_epoch) {
             console->rx_epoch = epoch;
             reply("\r\nERROR: input lost; repeat the last key\r\n");
-            /* Leave room for the next echo and its complete response. */
+
             continue;
         }
         uint8_t byte;
         if (!serial_read(&byte)) break;
         epoch = serial_rx_epoch();
-        if (epoch != console->rx_epoch) continue; /* Error raced with the read. */
+        if (epoch != console->rx_epoch) continue;
         (void)serial_write(&byte, 1);
         piano_event_t event = piano_input(piano, byte, now_ms);
         respond(event, piano, byte);
