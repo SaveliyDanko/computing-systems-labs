@@ -1,0 +1,1 @@
+PASS: 370 Cortex-M4 C assertions; 313 timer/UART/boot checks
